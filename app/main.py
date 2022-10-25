@@ -1,13 +1,16 @@
 import logging
+import os
 
 import httpx
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.logger import logger
 from starlette.responses import PlainTextResponse
-from telegram_bot import set_webhook, TELEGRAM_BOT_ID, send_message
-from ngrok_info import get_public_url
-from telegram_data_models import Update, OutMessage
+
+from .telegram.telegram_bot import TelegramBot
+from .telegram.telegram_data_models import Update
+from .ngrok_info import get_public_url
+from .telegram.commands import blueprints
 
 gunicorn_logger = logging.getLogger('gunicorn.error')
 logger.handlers = gunicorn_logger.handlers
@@ -16,15 +19,22 @@ if __name__ != "main":
 else:
     logger.setLevel(logging.DEBUG)
 
+TELEGRAM_BOT_ID = int(os.getenv('TELEGRAM_BOT_ID'))
+TELEGRAM_BOT_TOKEN_ = os.getenv('TELEGRAM_BOT_TOKEN')
+assert TELEGRAM_BOT_ID is not None
+assert TELEGRAM_BOT_TOKEN_ is not None
+
 app = FastAPI()
 client = httpx.AsyncClient()
+bot = TelegramBot(bot_id=TELEGRAM_BOT_ID, bot_token=TELEGRAM_BOT_TOKEN_, request_client=client, logger=logger,
+                  blueprints=blueprints)
 
 
 @app.on_event("startup")
 async def startup_event():
     ngrok_url = await get_public_url(client=client)
     bot_webhook_url = ngrok_url + f'/hook/{TELEGRAM_BOT_ID}'
-    set_webhook(url=bot_webhook_url)
+    bot.set_webhook(url=bot_webhook_url)
     logger.info(f'Set telegram webhook for bot {TELEGRAM_BOT_ID} at {ngrok_url}')
 
 
@@ -41,10 +51,6 @@ async def root():
 
 
 @app.post("/hook/{bot_id}")
-async def root(bot_id: int, data: Update):
-    chat_id = data.message.from_.id
-    logger.info(f'received from {bot_id} this update {data}')
-    text = data.message.text
-    out_message = OutMessage(chat_id=chat_id, text=text)
-    response = await send_message(message=out_message, client=client)
-    logger.info(f'receiver {response} after sending {out_message}')
+async def root(bot_id: int, update: Update):
+    # Todo: here code to handle multiple bots
+    await bot.handle_update(update)

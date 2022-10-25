@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 
 from pydantic import BaseModel, Field
 
@@ -46,7 +46,9 @@ class Message(BaseModel):
     from_: User = Field(..., alias='from')
     chat: Chat
     date: int
-    text: str
+    text: Optional[str]
+    animation: Optional[Dict]
+    document: Optional[Dict]
 
 
 class Update(BaseModel):

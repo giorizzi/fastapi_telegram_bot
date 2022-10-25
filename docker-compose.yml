@@ -6,6 +6,8 @@ services:
     environment:
       TELEGRAM_BOT_ID: ${TELEGRAM_BOT_ID}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./app:/app/app
     depends_on:
       - ngrok
 
