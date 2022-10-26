@@ -161,3 +161,4 @@ cython_debug/
 
 # sqlite database
 /app/database.db
+/tests/test_database.db

@@ -10,7 +10,8 @@ from starlette.responses import PlainTextResponse
 from .telegram.telegram_bot import TelegramBot
 from .telegram.telegram_data_models import Update
 from .ngrok_info import get_public_url
-from .telegram.commands import blueprints
+from .telegram.commands import blueprint_factory
+from .database import Database
 
 gunicorn_logger = logging.getLogger('gunicorn.error')
 logger.handlers = gunicorn_logger.handlers
@@ -26,8 +27,9 @@ assert TELEGRAM_BOT_TOKEN_ is not None
 
 app = FastAPI()
 client = httpx.AsyncClient()
+db = Database()
 bot = TelegramBot(bot_id=TELEGRAM_BOT_ID, bot_token=TELEGRAM_BOT_TOKEN_, request_client=client, logger=logger,
-                  blueprints=blueprints)
+                  blueprints=blueprint_factory(db=db))
 
 
 @app.on_event("startup")

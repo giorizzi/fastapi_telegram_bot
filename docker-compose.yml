@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.app
     environment:
       TELEGRAM_BOT_ID: ${TELEGRAM_BOT_ID}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
@@ -10,12 +12,71 @@ services:
       - ./app:/app/app
     depends_on:
       - ngrok
+      - redis
 
   ngrok:
     image: wernight/ngrok:latest
     ports:
-      - 4040:4040
+      - "4040:4040"
     environment:
       NGROK_PROTOCOL: http
       NGROK_PORT: app:80
       NGROK_AUTH: ${NGROK_AUTH}
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    command: celery --app=app.worker.celery worker --loglevel=info
+    environment:
+      TELEGRAM_BOT_ID: ${TELEGRAM_BOT_ID}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./app:/usr/src/app
+    depends_on:
+      - redis
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    command: celery --app=app.worker.celery beat --loglevel=info
+    environment:
+      TELEGRAM_BOT_ID: ${TELEGRAM_BOT_ID}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./app:/usr/src/app
+    depends_on:
+      - redis
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    command: celery --app=app.worker.celery flower
+    environment:
+      TELEGRAM_BOT_ID: ${TELEGRAM_BOT_ID}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    ports:
+      - "5557:5555"
+    volumes:
+      - ./app:/usr/src/app
+    depends_on:
+      - redis
+      - worker
+
+  selenium:
+    hostname: 'selenium'
+    image: 'selenium/standalone-chrome'
+    privileged: true
+    shm_size: 2g
+    environment:
+      - SE_NODE_MAX_SESSIONS=4
+    ports:
+      - '4444:4444'
+      - '7900:7900'

@@ -1,17 +1,20 @@
 from sqlmodel import create_engine, Session, SQLModel
 from contextlib import contextmanager
 
-sqlite_file_name = "app/database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
 
-engine = create_engine(sqlite_url, echo=True)
+class Database:  # does this needs to be a singleton?
+    def __init__(self, sqlite_file_name: str = "app/database.db", echo=True):
+        self.sqlite_file_name = sqlite_file_name
+        self.sqlite_url = f"sqlite:///{sqlite_file_name}"
+        self.engine = create_engine(self.sqlite_url, echo=echo)
 
+    @contextmanager
+    def get_session(self) -> Session:
+        with Session(self.engine) as session:
+            yield session
 
-@contextmanager
-def get_session():
-    with Session(engine) as session:
-        yield session
+    def create_all(self):
+        SQLModel.metadata.create_all(self.engine)
 
-
-def create_all():
-    SQLModel.metadata.create_all(engine)
+    def drop_all(self):
+        SQLModel.metadata.drop_all(self.engine)

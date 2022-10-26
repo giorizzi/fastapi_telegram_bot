@@ -1,3 +1,8 @@
 httpx
 retry
 sqlmodel
+celery
+redis
+flower
+bs4
+selenium

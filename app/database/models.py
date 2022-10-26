@@ -1,6 +1,7 @@
 from typing import Optional
 
-from sqlmodel import Field, Session, SQLModel, create_engine
+from sqlmodel import Field, SQLModel, Relationship, Column, DateTime
+import datetime
 
 
 class Hero(SQLModel, table=True):
@@ -15,9 +16,19 @@ class Chat(SQLModel, table=True):
     first_name: str
 
 
-if __name__ == '__main__':
-    sqlite_file_name = "../database.db"
-    sqlite_url = f"sqlite:///{sqlite_file_name}"
+class SearchInput(SQLModel, table=False):
+    location: str
+    start_date: datetime.date
+    end_date: datetime.date
 
-    engine = create_engine(sqlite_url, echo=True)
-    SQLModel.metadata.create_all(engine)
+
+class SearchTask(SearchInput, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    chat_id: Optional[int] = Field(index=True, default=None, foreign_key="chat.id")
+    chat: Optional[Chat] = Relationship()
+    active: bool = True
+    active_id: Optional[int] = None
+    created_at_utc: datetime.datetime = Field(default_factory=datetime.datetime.utcnow, nullable=False)
+    last_checked_at_utc: Optional[datetime.datetime] = None
+    next_run_at_utc: Optional[datetime.datetime] = Field(default_factory=datetime.datetime.utcnow, nullable=False)
+    queued: bool = False

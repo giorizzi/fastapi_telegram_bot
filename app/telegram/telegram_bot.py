@@ -78,9 +78,18 @@ class TelegramBot:
         response = await self.request_client.post(url=self.api_url + '/sendMessage', data=message.dict())
         return response
 
+    def send_message_sync(self, message: OutMessage):
+        assert isinstance(self.request_client, Client)
+        response = self.request_client.post(url=self.api_url + '/sendMessage', data=message.dict())
+        return response
+
     async def handle_update(self, update: Update):
-        text = update.message.text
-        chat_id = update.message.chat.id
+        message = update.message
+        if update.message is None:
+            message = update.edited_message
+        assert message is not None
+        text = message.text
+        chat_id = message.chat.id
         self.logger.info(f'{self.bot_id} is handling this update {update}')
         if text and text.startswith('/'):
             splits = text.split(' ', maxsplit=1)
@@ -92,7 +101,7 @@ class TelegramBot:
                     command_input = None
                 else:
                     command_input = splits[1]
-                out_text = await self.command_routes[command](command_input, chat_id, update.message)
+                out_text = await self.command_routes[command](command_input, chat_id, message)
             out_message = OutMessage(chat_id=chat_id, text=out_text)
             return await self.send_message(out_message)
 
