@@ -25,11 +25,11 @@ celery.conf.broker_url = "redis://redis:6379"
 celery.conf.result_backend = "redis://redis:6379"
 db = Database()
 
+
 @celery.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
     # Calls test('hello') every 10 seconds.
-    sender.add_periodic_task(30.0, scan_for_expired.s(), name='scan_for_expired')
-
+    sender.add_periodic_task(30.0, scan_for_expired.s(), name='scan_for_expired', expires=50)
 
 
 @celery.task
@@ -44,6 +44,7 @@ def delayed_reply(chat_id, time_out):
     time.sleep(time_out)
     sender_bot.send_message_sync(message=message)
     return True
+
 
 @celery.task
 def run_task(task_id: int):
@@ -60,16 +61,15 @@ def run_task(task_id: int):
 
         with db.get_session() as session:
             task.last_checked_at_utc = datetime.datetime.utcnow()
-            task.next_run_at_utc = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+            task.next_run_at_utc = datetime.datetime.utcnow() + datetime.timedelta(minutes=3)
             session.add(task)
             session.commit()
     finally:
         with db.get_session() as session:
-            session.refresh(task)
+            task = session.get(SearchTask, task_id)
             task.queued = False
             session.add(task)
             session.commit()
-
 
 
 @celery.task
@@ -86,7 +86,6 @@ def scan_for_expired():
             task.queued = True
             session.add(task)
         session.commit()
-
 
 
 def get_close_campsite(task: SearchTask, max_distance: int = 15):

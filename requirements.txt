@@ -6,3 +6,4 @@ redis
 flower
 bs4
 selenium
+tabulate

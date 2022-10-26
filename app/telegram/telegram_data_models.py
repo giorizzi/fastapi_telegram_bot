@@ -60,3 +60,4 @@ class Update(BaseModel):
 class OutMessage(BaseModel):
     chat_id: int
     text: str
+    # parse_mode: str = 'MarkdownV2'

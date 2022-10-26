@@ -4,6 +4,7 @@ from ..database import Database
 from .telegram_bot import CommandBlueprints
 from .telegram_data_models import Message
 from ..database.models import Chat, SearchInput, SearchTask
+from ..database.utils import get_task_tabulate, get_task_summary
 from ..worker import delayed_reply
 from .text_parser import TextInputParser
 
@@ -45,9 +46,10 @@ def blueprint_factory(db=Database()):
         with db.get_session() as session:
             chat = session.get(Chat, chat_id)
             task = SearchTask(chat=chat, **search_request.dict())
+            task_str = get_task_summary(task)
             session.add(task)
             session.commit()
-        return f'you sent the current {search_request}'
+        return f'you sent the current job:\n {task_str}'
 
     @blueprints.command('/status')
     async def add_handle(text: str, chat_id: int):
@@ -57,15 +59,19 @@ def blueprint_factory(db=Database()):
                 return 'you should first /start'
             statement = select(SearchTask).where(SearchTask.chat_id == chat.id, SearchTask.active)
             results = session.exec(statement)
-            message = ''
-            for i, task in enumerate(results):
+            no_results = True
+            for i, task in enumerate(results): # refresh indexes
+                no_results = False
                 task.active_id = i
-                message += f'{task.active_id} {task.location} {task.start_date} {task.end_date} {task.last_checked_at_utc}\n'
                 session.add(task)
             session.commit()
-            if not message:
-                message = 'you do not have any active task'
-        return message
+
+            if no_results:
+                return 'You do not have any active task'
+
+            results = session.exec(statement)
+            table_text = get_task_tabulate(results)
+        return table_text
 
     @blueprints.command('/del')
     async def add_handle(text: str, chat_id: int):
@@ -79,11 +85,27 @@ def blueprint_factory(db=Database()):
                 return 'you should first /start'
             statement = select(SearchTask).where(SearchTask.chat_id == chat.id, SearchTask.active_id == task_active_id, SearchTask.active)
             task = session.exec(statement).first()
+            task_str = get_task_summary(task)
             task.active = False
             task.active_id = None
             session.add(task)
             session.commit()
             session.refresh(task)
-        return f'you successfully deleted {task}'
+        return f'you successfully deleted:\n {task_str}'
+
+    @blueprints.command('/help')
+    async def help_handle(text: str):
+        help_message = '''
+        Usage:
+        - /start  
+              to register your chat
+        - /add [locaton:str] [start_date:(yyyy/)mm/dd] [add_date:(yyyy/)mm/dd]  
+              schedules a job querying recreation.gov for campsite within 15 miles from location within selected dates
+        - /status 
+              returns a list of all your active scraping jobs
+        - /del [id:int]
+              delete a job using the id from /status
+        '''
+        return help_message
 
     return blueprints

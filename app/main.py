@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.logger import logger
 from starlette.responses import PlainTextResponse
 
+from .database.utils import clear_queued
 from .telegram.telegram_bot import TelegramBot
 from .telegram.telegram_data_models import Update
 from .ngrok_info import get_public_url
@@ -38,6 +39,7 @@ async def startup_event():
     bot_webhook_url = ngrok_url + f'/hook/{TELEGRAM_BOT_ID}'
     bot.set_webhook(url=bot_webhook_url)
     logger.info(f'Set telegram webhook for bot {TELEGRAM_BOT_ID} at {ngrok_url}')
+    clear_queued(db=db)
 
 
 @app.exception_handler(RequestValidationError)

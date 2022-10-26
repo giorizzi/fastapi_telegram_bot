@@ -103,6 +103,7 @@ class TelegramBot:
                     command_input = splits[1]
                 out_text = await self.command_routes[command](command_input, chat_id, message)
             out_message = OutMessage(chat_id=chat_id, text=out_text)
+            self.logger.info(f'{self.bot_id} is replying {out_message}')
             return await self.send_message(out_message)
 
     def add_command_route(self, path: str, endpoint: Callable[..., Any]) -> None:

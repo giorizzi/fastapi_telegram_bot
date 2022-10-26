@@ -63,6 +63,8 @@ class TextInputParser:
         return groups
 
     def parse(self, text: str):
+        if not text:
+            raise ValueError('Input does not match the pattern')
         groups = self.apply_regex(text=text)
         kwargs = {key: self.parsers[key].parse(group) for key, group in groups.items()}
         return self.output_type(**kwargs)
