@@ -7,15 +7,19 @@ class Database:  # does this needs to be a singleton?
         self.sqlite_file_name = sqlite_file_name
         self.sqlite_url = f"sqlite:///{sqlite_file_name}"
         self.echo = echo
-        self.engine = None
+        self.engine_ = None
 
 
     @contextmanager
     def get_session(self) -> Session:
-        if not self.engine:
-            self.engine = create_engine(self.sqlite_url, echo=self.echo)
         with Session(self.engine) as session:
             yield session
+
+    @property
+    def engine(self):
+        if not self.engine_:
+            self.engine_ = create_engine(self.sqlite_url, echo=self.echo)
+        return self.engine_
 
     def create_all(self):
         from .models import Chat, SearchTask

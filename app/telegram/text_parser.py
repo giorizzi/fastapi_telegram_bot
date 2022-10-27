@@ -1,8 +1,8 @@
-import datetime
 from typing import Type
 import re
 
 from sqlmodel import SQLModel
+from datetime import datetime, date
 
 
 class StrParser:
@@ -20,20 +20,20 @@ class DateParser:
     allowed_date_formats = {'yyyy/mm/dd': '%Y/%m/%d', 'mm/dd': '%m/%d'}
 
     @classmethod
-    def parse(cls, string: str) -> datetime.date:
-        date = None
+    def parse(cls, string: str) -> date:
+        date_output = None
         for date_format in cls.allowed_date_formats.values():
             try:
-                date = datetime.datetime.strptime(string, date_format)
+                date_output = datetime.strptime(string, date_format)
             except ValueError:
                 pass
-        assert date, ValueError(f'{string} is not a valid format for the date')
-        now = datetime.datetime.now().date()
-        if date.year == 1900:  # if missing year, assumes next coming (not fixed for leap years)
-            date = datetime.date(now.year, date.month, date.day)
-            if now > date:
-                date = datetime.date(date.year + 1, date.month, date.day)
-        return date
+        assert date_output, ValueError(f'{string} is not a valid format for the date')
+        now = datetime.now().date()
+        if date_output.year == 1900:  # if missing year, assumes next coming (not fixed for leap years)
+            date_output = date(now.year, date_output.month, date_output.day)
+            if now > date_output:
+                date_output = date(date_output.year + 1, date_output.month, date_output.day)
+        return date_output
 
     @classmethod
     def regex(cls):
@@ -43,7 +43,7 @@ class DateParser:
 def get_parser(field_type: Type):
     if field_type == str:
         return StrParser
-    if field_type == datetime.date:
+    if field_type == date:
         return DateParser
 
 

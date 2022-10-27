@@ -1,8 +1,7 @@
 import pytest
-import datetime
-
+from datetime import datetime, timedelta
 from sqlmodel import select
-from app.database.models import Chat, SearchTask, SearchInput
+from app.database.models import Chat, SearchTask, SearchQuery
 from app.database import Database
 
 
@@ -16,10 +15,10 @@ def db():
 
 @pytest.fixture
 def task(db):
-    start_date = datetime.datetime.now().date() + datetime.timedelta(days=90)
-    end_date = start_date + datetime.timedelta(days=5)
+    start_date = datetime.now().date() + timedelta(days=90)
+    end_date = start_date + timedelta(days=5)
 
-    input = SearchInput(location='grand canyon', start_date=start_date,
+    input = SearchQuery(location='grand canyon', start_date=start_date,
                         end_date=end_date)
     chat = Chat(id=1234, first_name='user')
     with db.get_session() as session:
@@ -42,10 +41,10 @@ def test_add_chat(db):
 
 
 def test_task(db):
-    start_date = datetime.datetime.now().date() + datetime.timedelta(days=90)
-    end_date = start_date + datetime.timedelta(days=5)
+    start_date = datetime.now().date() + timedelta(days=90)
+    end_date = start_date + timedelta(days=5)
 
-    input = SearchInput(location='grand canyon', start_date=start_date,
+    input = SearchQuery(location='grand canyon', start_date=start_date,
                         end_date=end_date)
     with db.get_session() as session:
         chat = Chat(id=1234, first_name='user')
@@ -63,10 +62,10 @@ def test_task(db):
 
 
 def test_task_retrieve(db):
-    start_date = datetime.datetime.now().date() + datetime.timedelta(days=90)
-    end_date = start_date + datetime.timedelta(days=5)
+    start_date = datetime.now().date() + timedelta(days=90)
+    end_date = start_date + timedelta(days=5)
 
-    input = SearchInput(location='grand canyon', start_date=start_date,
+    input = SearchQuery(location='grand canyon', start_date=start_date,
                         end_date=end_date)
     with db.get_session() as session:
         chat = Chat(id=1234, first_name='user')
@@ -74,7 +73,7 @@ def test_task_retrieve(db):
         session.add(chat)
         session.add(task)
         session.commit()
-        statement = select(SearchTask).where(SearchTask.active, SearchTask.next_run_at_utc < datetime.datetime.utcnow())
+        statement = select(SearchTask).where(SearchTask.active, SearchTask.next_run_at_utc < datetime.utcnow())
         tasks = session.exec(statement)
         for task in tasks:
             print(task)
@@ -83,7 +82,7 @@ def test_task_retrieve(db):
 def test_task_update(db, task):
     print(task)
     with db.get_session() as session:
-        statement = select(SearchTask).where(SearchTask.active, SearchTask.next_run_at_utc < datetime.datetime.utcnow())
+        statement = select(SearchTask).where(SearchTask.active, SearchTask.next_run_at_utc < datetime.utcnow())
         task = session.exec(statement).first()
         print(task)
     print(task)

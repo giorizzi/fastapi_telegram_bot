@@ -1,13 +1,14 @@
-import datetime
+from datetime import datetime, timedelta
 import os
 import time
+
+import httpx
+from celery import Celery
+from celery.schedules import crontab
 from sqlmodel import select
 
 from .database.utils import get_task_summary
 from .scraper import get_availability
-
-import httpx
-from celery import Celery
 
 from .telegram.telegram_bot import TelegramBot
 from .telegram.telegram_data_models import OutMessage
@@ -32,6 +33,7 @@ db = Database()
 def setup_periodic_tasks(sender, **kwargs):
     # Calls test('hello') every 10 seconds.
     sender.add_periodic_task(30.0, scan_for_expired.s(), name='scan_for_expired', expires=50)
+    sender.add_periodic_task(crontab(minute=0, hour=0), cleanup_old.s(), name='cleanup_old')
 
 
 @celery.task
@@ -62,8 +64,8 @@ def run_task(task_id: int):
             sender_bot.send_message_sync(message=message)
 
         with db.get_session() as session:
-            task.last_checked_at_utc = datetime.datetime.utcnow()
-            task.next_run_at_utc = datetime.datetime.utcnow() + datetime.timedelta(minutes=3)
+            task.last_checked_at_utc = datetime.utcnow()
+            task.next_run_at_utc = datetime.utcnow() + timedelta(minutes=3)
             session.add(task)
             session.commit()
     finally:
@@ -78,7 +80,7 @@ def run_task(task_id: int):
 def scan_for_expired():
     with db.get_session() as session:
         statement = select(SearchTask).where(
-            SearchTask.active, SearchTask.next_run_at_utc < datetime.datetime.utcnow(), SearchTask.queued == False
+            SearchTask.active, SearchTask.next_run_at_utc < datetime.utcnow(), SearchTask.queued == False
         )
         tasks = session.exec(statement)
         if tasks is None:
@@ -86,6 +88,21 @@ def scan_for_expired():
         for task in tasks:
             run_task.delay(task.id)
             task.queued = True
+            session.add(task)
+        session.commit()
+
+
+@celery.task
+def cleanup_old():
+    with db.get_session() as session:
+        statement = select(SearchTask).where(
+            SearchTask.active, SearchTask.start_date < (datetime.utcnow().date() + timedelta(days=-1))
+        )
+        tasks = session.exec(statement)
+        if tasks is None:
+            return
+        for task in tasks:
+            task.active = False
             session.add(task)
         session.commit()
 

@@ -43,7 +43,7 @@ async def startup_event():
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc: Exception):
+async def validation_exception_handler(request, exc: Exception):  #TODO: this might be leaking internal stuff
     logger.info(str(exc))
     return PlainTextResponse(str(exc), status_code=422)
 

@@ -1,14 +1,14 @@
-import datetime
+from datetime import datetime, timedelta
 from app.telegram.text_parser import TextInputParser, DateParser
-from app.database.models import SearchInput
+from app.database.models import SearchQuery
 
 
 def test_search_input_parser():
-    test_parser = TextInputParser(SearchInput)
-    start_date = datetime.datetime.now().date() + datetime.timedelta(days=90)
-    end_date = start_date + datetime.timedelta(days=5)
+    test_parser = TextInputParser(SearchQuery)
+    start_date = datetime.now().date() + timedelta(days=90)
+    end_date = start_date + timedelta(days=5)
 
-    output = SearchInput(location='grand canyon', start_date=start_date,
+    output = SearchQuery(location='grand canyon', start_date=start_date,
                          end_date=end_date)
 
     for strf in DateParser.allowed_date_formats.values():

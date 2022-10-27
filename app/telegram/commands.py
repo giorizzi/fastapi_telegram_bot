@@ -3,7 +3,7 @@ from sqlmodel import select
 from ..database import Database
 from .telegram_bot import CommandBlueprints
 from .telegram_data_models import Message
-from ..database.models import Chat, SearchInput, SearchTask
+from ..database.models import Chat, SearchQuery, SearchTask
 from ..database.utils import get_task_tabulate, get_task_summary
 from ..worker import delayed_reply
 from .text_parser import TextInputParser
@@ -38,7 +38,7 @@ def blueprint_factory(db=Database()):
 
     @blueprints.command('/add')
     async def add_handle(text: str, chat_id: int):
-        parser = TextInputParser(SearchInput)
+        parser = TextInputParser(SearchQuery)
         try:
             search_request = parser.parse(text)
         except ValueError as e:
