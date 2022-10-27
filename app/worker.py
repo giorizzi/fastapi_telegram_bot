@@ -2,6 +2,8 @@ import datetime
 import os
 import time
 from sqlmodel import select
+
+from .database.utils import get_task_summary
 from .scraper import get_availability
 
 import httpx
@@ -55,7 +57,7 @@ def run_task(task_id: int):
         results = get_close_campsite(task)
 
         if results:
-            text = f'HURRY, I found the following available campsites\n {results}'
+            text = f'HURRY, I found the following available campsites:\n{get_task_summary(task)}\n {results}'
             message = OutMessage(chat_id=chat_id, text=text)
             sender_bot.send_message_sync(message=message)
 
